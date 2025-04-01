@@ -72,9 +72,6 @@ def lambda_handler(event, _context):
         else:
             print("✅ Using default ',' delimiter.")
 
-        print("📋 First 5 lines after replacing '|' with ',':")
-        print("\n".join(file_content.splitlines()[:5]))
-
         # Load CSV into DataFrame
         print("📊 Loading cleaned CSV into DataFrame...")
         csv_data_frame = pd.read_csv(StringIO(file_content))
