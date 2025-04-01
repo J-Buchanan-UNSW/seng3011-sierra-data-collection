@@ -64,6 +64,8 @@ def lambda_handler(event, _context):
         # Check the first few lines to determine the delimiter
         sample_lines = file_content.splitlines()[:4]
 
+        print("Sample lines for delimiter check:", sample_lines)
+
         # Determine delimiter dynamically
         delimiter = ","
         if "|" in sample_lines:
