@@ -64,24 +64,20 @@ def lambda_handler(event, _context):
         # Check the first few lines to determine the delimiter
         sample_lines = file_content.splitlines()[:4]
 
-        print("Sample lines for delimiter check:", sample_lines)
-
-        # Determine delimiter dynamically
-        delimiter = ","
-        if "|" in sample_lines:
-            print("⚠️ Warning: CSV contains both ',' and '|' delimiters.")
-            delimiter = "|"
-
-        # If '|' is the delimiter, replace it with ','
-        if delimiter == "|":
+        # Check if '|' is the delimiter in the sample lines
+        if any('|' in line for line in sample_lines):
+            print("⚠️ Detected '|' delimiter in CSV.")
             print("🔄 Replacing '|' with ',' in CSV content...")
-            csv_content = file_content.replace("|", ",")
+            file_content = file_content.replace("|", ",")
         else:
-            csv_content = file_content
+            print("✅ Using default ',' delimiter.")
+
+        print("📋 First 5 lines after replacing '|' with ',':")
+        print("\n".join(file_content.splitlines()[:5]))
 
         # Load CSV into DataFrame
         print("📊 Loading cleaned CSV into DataFrame...")
-        csv_data_frame = pd.read_csv(StringIO(csv_content))
+        csv_data_frame = pd.read_csv(StringIO(file_content))
 
         # Log column names to check if "metric_name" exists
         print("🧐 CSV Columns Found:", csv_data_frame.columns.tolist())
