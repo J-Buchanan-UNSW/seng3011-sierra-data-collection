@@ -59,6 +59,7 @@ def lambda_handler(event, _context):
         # Download CSV from S3
         print("📥 Fetching CSV from S3...")
         response = s3_client.get_object(Bucket=bucket, Key=key)
+        print(response["Body"])
         data_to_string = TextIOWrapper(response["Body"], encoding="utf-8")
 
         # Read a small portion of the file to check the delimiter
