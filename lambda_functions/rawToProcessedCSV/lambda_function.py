@@ -63,7 +63,18 @@ def lambda_handler(event, _context):
 
         # Read CSV into DataFrame
         print("📊 Loading CSV into DataFrame...")
-        csv_data_frame = pd.read_csv(data_to_string, sep=",")
+        csv_data_frame = pd.read_csv(
+            data_to_string,
+            sep=r"[,\|]",
+            engine="python")
+
+        sample_lines = data_to_string.read(2048)
+
+        if "|" in sample_lines and "," in sample_lines:
+            print("⚠️ Warning: CSV contains both ',' and '|' delimiters.")
+
+        # Reset stream position
+        data_to_string.seek(0)
 
         # Log column names to check if "metric_name" exists
         print("🧐 CSV Columns Found:", csv_data_frame.columns.tolist())
