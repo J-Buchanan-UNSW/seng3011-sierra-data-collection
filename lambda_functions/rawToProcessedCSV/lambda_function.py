@@ -4,7 +4,7 @@ and save the processed file back to S3.
 """
 
 from datetime import datetime
-from io import TextIOWrapper
+from io import StringIO
 import json
 import boto3
 import pandas as pd
@@ -59,11 +59,22 @@ def lambda_handler(event, _context):
         # Download CSV from S3
         print("📥 Fetching CSV from S3...")
         response = s3_client.get_object(Bucket=bucket, Key=key)
-        data_to_string = TextIOWrapper(response["Body"], encoding="utf-8")
+        file_content = response["Body"].read().decode("utf-8")
 
-        # Read CSV into DataFrame
-        print("📊 Loading CSV into DataFrame...")
-        csv_data_frame = pd.read_csv(data_to_string, sep=",")
+        # Check the first few lines to determine the delimiter
+        sample_lines = file_content.splitlines()[:4]
+
+        # Check if '|' is the delimiter in the sample lines
+        if any('|' in line for line in sample_lines):
+            print("⚠️ Detected '|' delimiter in CSV.")
+            print("🔄 Replacing '|' with ',' in CSV content...")
+            file_content = file_content.replace("|", ",")
+        else:
+            print("✅ Using default ',' delimiter.")
+
+        # Load CSV into DataFrame
+        print("📊 Loading cleaned CSV into DataFrame...")
+        csv_data_frame = pd.read_csv(StringIO(file_content))
 
         # Log column names to check if "metric_name" exists
         print("🧐 CSV Columns Found:", csv_data_frame.columns.tolist())
