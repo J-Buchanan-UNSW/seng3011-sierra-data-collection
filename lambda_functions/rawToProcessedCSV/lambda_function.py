@@ -62,7 +62,7 @@ def lambda_handler(event, _context):
         data_to_string = TextIOWrapper(response["Body"], encoding="utf-8")
 
         # Read a small portion of the file to check the delimiter
-        sample_lines = data_to_string.read(2048)
+        sample_lines = data_to_string.readlines()[:4]
 
         # Determine delimiter dynamically
         delimiter = ","
@@ -76,10 +76,6 @@ def lambda_handler(event, _context):
             csv_content = data_to_string.read().replace("|", ",")
         else:
             csv_content = data_to_string.read()
-
-        # Read file content and replace '|' with ','
-        print("🔄 Replacing '|' with ',' in CSV content...")
-        csv_content = data_to_string.read().replace("|", ",")
 
         # Load CSV into DataFrame
         print("📊 Loading cleaned CSV into DataFrame...")
