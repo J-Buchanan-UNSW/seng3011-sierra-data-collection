@@ -70,9 +70,6 @@ def lambda_handler(event, _context):
             print("⚠️ Warning: CSV contains both ',' and '|' delimiters.")
             delimiter = "|"
 
-        # Reset stream position
-        data_to_string.seek(0)
-
         # If '|' is the delimiter, replace it with ','
         if delimiter == "|":
             print("🔄 Replacing '|' with ',' in CSV content...")
