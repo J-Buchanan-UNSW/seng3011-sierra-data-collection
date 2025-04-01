@@ -4,7 +4,7 @@ and save the processed file back to S3.
 """
 
 from datetime import datetime
-from io import TextIOWrapper
+from io import TextIOWrapper, StringIO
 import json
 import boto3
 import pandas as pd
@@ -61,20 +61,32 @@ def lambda_handler(event, _context):
         response = s3_client.get_object(Bucket=bucket, Key=key)
         data_to_string = TextIOWrapper(response["Body"], encoding="utf-8")
 
-        # Read CSV into DataFrame
-        print("📊 Loading CSV into DataFrame...")
-        csv_data_frame = pd.read_csv(
-            data_to_string,
-            sep=r"[,\|]",
-            engine="python")
-
+        # Read a small portion of the file to check the delimiter
         sample_lines = data_to_string.read(2048)
 
-        if "|" in sample_lines and "," in sample_lines:
+        # Determine delimiter dynamically
+        delimiter = ","
+        if "|" in sample_lines:
             print("⚠️ Warning: CSV contains both ',' and '|' delimiters.")
+            delimiter = "|"
 
         # Reset stream position
         data_to_string.seek(0)
+
+        # If '|' is the delimiter, replace it with ','
+        if delimiter == "|":
+            print("🔄 Replacing '|' with ',' in CSV content...")
+            csv_content = data_to_string.read().replace("|", ",")
+        else:
+            csv_content = data_to_string.read()
+
+        # Read file content and replace '|' with ','
+        print("🔄 Replacing '|' with ',' in CSV content...")
+        csv_content = data_to_string.read().replace("|", ",")
+
+        # Load CSV into DataFrame
+        print("📊 Loading cleaned CSV into DataFrame...")
+        csv_data_frame = pd.read_csv(StringIO(csv_content))
 
         # Log column names to check if "metric_name" exists
         print("🧐 CSV Columns Found:", csv_data_frame.columns.tolist())
