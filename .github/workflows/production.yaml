@@ -55,8 +55,6 @@ jobs:
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
           API_ENDPOINT: "https://2vyhl58mci.execute-api.ap-southeast-2.amazonaws.com/prod/get-upload-url?file=test.csv"
-          COGNITO_DOMAIN: ${{ secrets.COGNITO_DOMAIN }}
-          COGNITO_POOL_ID: ${{ secrets.COGNITO_POOL_ID }}
         run: |
           python tests/test_api.py
 
@@ -75,12 +73,6 @@ jobs:
         run: |
           cd lambda_functions/uploadRawCSV
 
-          # Install dependencies inside function folder
-          pip install --target=. pyjwt requests
-
-          # Package everything into a ZIP
-          zip -r ../../uploadRawCSV.zip .
-
           # Deploy to AWS Lambda
           aws lambda update-function-code \
             --function-name arn:aws:lambda:ap-southeast-2:992382806042:function:collectionFunction \
@@ -89,8 +81,6 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: "ap-southeast-2"
-          COGNITO_DOMAIN: ${{ secrets.COGNITO_DOMAIN }}
-          COGNITO_POOL_ID: ${{ secrets.COGNITO_POOL_ID }}
 
       - name: Deploy Raw to Processed CSV Function to Production
         run: |
