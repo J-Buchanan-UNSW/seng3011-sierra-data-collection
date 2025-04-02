@@ -1,31 +1,86 @@
-"""
-AWS Lambda function to generate a presigned URL for uploading CSV files.
-"""
-
 import json
 import os
-
 import boto3
+import requests
+import jwt
+from jwt import algorithms
 from botocore.config import Config
 
 BUCKET_NAME = os.getenv("BUCKET_NAME", "dev-sierra-e-bucket")
 UPLOAD_PREFIX = "rawCSV/"
+COGNITO_POOL_ID = os.getenv("COGNITO_POOL_ID")
+COGNITO_REGION = os.getenv("COGNITO_REGION", "ap-southeast-2")
 
+ALLOWED_CLIENT_IDS = {"data-collection-keeper-client-id", "data-collection-port-client-id"}  # Replace with your actual App Client IDs
+
+JWKS_URL = f'https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{COGNITO_POOL_ID}/.well-known/jwks.json'
+
+# Fetch Cognito JWKS keys
+def get_jwks():
+    try:
+        response = requests.get(JWKS_URL)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        print(f"Error fetching JWKS: {str(e)}")
+        return None
+
+# Verify the JWT using the appropriate key
+def verify_jwt(token):
+    jwks = get_jwks()
+    if not jwks:
+        raise Exception("Could not fetch JWKS")
+
+    unverified_header = jwt.get_unverified_header(token)
+    if unverified_header is None or 'kid' not in unverified_header:
+        raise Exception('Invalid token header')
+
+    rsa_key = {}
+    for key in jwks['keys']:
+        if key['kid'] == unverified_header['kid']:
+            rsa_key = {
+                'kty': key['kty'],
+                'kid': key['kid'],
+                'use': key['use'],
+                'n': key['n'],
+                'e': key['e']
+            }
+            break
+
+    if rsa_key:
+        try:
+            payload = jwt.decode(
+                token,
+                rsa_key,
+                algorithms=["RS256"],
+                audience=os.getenv("API_AUDIENCE"),
+                issuer=f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{COGNITO_POOL_ID}"
+            )
+            if payload["client_id"] not in ALLOWED_CLIENT_IDS:
+                raise Exception('Invalid authorisation portal')
+            return payload
+        except jwt.ExpiredSignatureError:
+            raise Exception("Token has expired")
+        except jwt.JWTClaimsError:
+            raise Exception("Invalid claims")
+        except Exception as e:
+            raise Exception(f"Token validation error: {str(e)}")
+    else:
+        raise Exception("Unable to find appropriate key")
 
 def lambda_handler(event, _context):
-    """
-    Handles API Gateway requests to generate a presigned URL for uploading CSV.
-
-    Args:
-        event (dict): The event data received from API Gateway.
-        _context: Unused AWS Lambda context parameter.
-
-    Returns:
-        dict: API Gateway-compatible response with a presigned URL.
-    """
     try:
         print(f"🚀 Starting Upload of Raw CSV to {UPLOAD_PREFIX}")
         print("📩 Event received:", json.dumps(event))
+
+        # Get the Authorization token
+        token = event['headers'].get('Authorization')
+        if not token:
+            return {'statusCode': 401, 'body': json.dumps({'error': 'Authorization token missing'})}
+
+        # Validate the token
+        payload = verify_jwt(token)
+        print(f"Valid token payload: {payload}")
 
         s3 = boto3.client(
             "s3",
@@ -34,8 +89,6 @@ def lambda_handler(event, _context):
         )
 
         params = event.get("queryStringParameters", {})
-        print("🔍 Query Parameters:", params)
-
         if not params:
             return {
                 "statusCode": 400,
@@ -50,21 +103,14 @@ def lambda_handler(event, _context):
             }
 
         s3_key = f"{UPLOAD_PREFIX}{file_name}"
-        print(f"📂 Bucket: {BUCKET_NAME}, File: {s3_key}")
-
-        print(f"🔍 Checking if files exist in {UPLOAD_PREFIX}...")
         existing_files = s3.list_objects_v2(
             Bucket=BUCKET_NAME,
             Prefix=UPLOAD_PREFIX)
 
         if "Contents" in existing_files:
             for obj in existing_files["Contents"]:
-                print(f"🗑 Deleting existing file: {obj['Key']}")
                 s3.delete_object(Bucket=BUCKET_NAME, Key=obj["Key"])
-        else:
-            print("✅ No files found in bucket.")
 
-        # Generate pre-signed URL
         presigned_url = s3.generate_presigned_url(
             "put_object",
             Params={
@@ -75,24 +121,19 @@ def lambda_handler(event, _context):
             ExpiresIn=3600,
         )
 
-        print("🔗 Generated Presigned URL:", presigned_url)
-        print("🎉 Upload of Raw CSV completed.")
-
         return {
             "statusCode": 200,
             "headers": {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Methods": "OPTIONS, GET, POST",
-                "Access-Control-Allow-Headers": "Content-Type, " +
-                "X-Amz-Date, X-Api-Key, X-Amz-Security-Token, " +
-                "Authorization, file, bucket",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization",
             },
             "body": json.dumps({"URL": presigned_url}),
         }
 
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        print(f"❌ Error: {str(e)}")
+    except Exception as e:
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": "Internal Server Error"})}
+            "body": json.dumps({"error": f"Internal Server Error: {str(e)}"})
+        }
