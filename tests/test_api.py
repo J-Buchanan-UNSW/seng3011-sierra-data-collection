@@ -9,6 +9,7 @@ import requests
 # Retrieve the environment variables
 api_endpoint = os.getenv("API_ENDPOINT", "")
 
+
 def make_api_request():
     """
     Function to make the API request
