@@ -74,7 +74,14 @@ jobs:
       - name: Deploy Upload Function to Development
         run: |
           cd lambda_functions/uploadRawCSV
+
+          # Install dependencies inside function folder
+          pip install --target=. pyjwt requests
+
+          # Package everything into a ZIP
           zip -r ../../uploadRawCSV.zip .
+
+          # Deploy to AWS Lambda
           aws lambda update-function-code \
             --function-name arn:aws:lambda:ap-southeast-2:992382806042:function:DevCollectionFunction \
             --zip-file fileb://../../uploadRawCSV.zip
