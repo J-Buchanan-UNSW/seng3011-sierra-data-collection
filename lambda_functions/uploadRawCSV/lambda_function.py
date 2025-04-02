@@ -85,6 +85,7 @@ def lambda_handler(event, _context):
                 "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Methods": "OPTIONS, GET, POST",
                 "Access-Control-Allow-Headers": "Content-Type, " +
+                "X-Amz-Date, X-Api-Key, X-Amz-Security-Token, " +
                 "Authorization, file, bucket",
             },
             "body": json.dumps({"URL": presigned_url}),
