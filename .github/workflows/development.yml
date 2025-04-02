@@ -72,8 +72,7 @@ jobs:
       - name: Deploy Upload Function to Development
         run: |
           cd lambda_functions/uploadRawCSV
-
-          # Deploy to AWS Lambda
+          zip -r ../../uploadRawCSV.zip .
           aws lambda update-function-code \
             --function-name arn:aws:lambda:ap-southeast-2:992382806042:function:DevCollectionFunction \
             --zip-file fileb://../../uploadRawCSV.zip
