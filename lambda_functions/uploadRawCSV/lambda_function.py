@@ -3,17 +3,14 @@ import os
 import boto3
 import requests
 import jwt
-from jwt import algorithms
 from botocore.config import Config
 
 BUCKET_NAME = os.getenv("BUCKET_NAME", "dev-sierra-e-bucket")
 UPLOAD_PREFIX = "rawCSV/"
-COGNITO_POOL_ID = os.getenv("COGNITO_POOL_ID")
-COGNITO_REGION = os.getenv("COGNITO_REGION", "ap-southeast-2")
+COGNITO_POOL_ID = os.getenv("COGNITO_POOL_ID", "")
+COGNITO_DOMAIN = os.getenv("COGNITO_DOMAIN", "")
+JWKS_URL = COGNITO_DOMAIN + "/" + COGNITO_POOL_ID + "/.well-known/jwks.json"
 
-ALLOWED_CLIENT_IDS = {"data-collection-keeper-client-id", "data-collection-port-client-id"}  # Replace with your actual App Client IDs
-
-JWKS_URL = f'https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{COGNITO_POOL_ID}/.well-known/jwks.json'
 
 # Fetch Cognito JWKS keys
 def get_jwks():
@@ -24,6 +21,7 @@ def get_jwks():
     except Exception as e:
         print(f"Error fetching JWKS: {str(e)}")
         return None
+
 
 # Verify the JWT using the appropriate key
 def verify_jwt(token):
@@ -54,10 +52,8 @@ def verify_jwt(token):
                 rsa_key,
                 algorithms=["RS256"],
                 audience=os.getenv("API_AUDIENCE"),
-                issuer=f"https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{COGNITO_POOL_ID}"
+                issuer=COGNITO_DOMAIN + "/" + COGNITO_POOL_ID
             )
-            if payload["client_id"] not in ALLOWED_CLIENT_IDS:
-                raise Exception('Invalid authorisation portal')
             return payload
         except jwt.ExpiredSignatureError:
             raise Exception("Token has expired")
@@ -68,6 +64,7 @@ def verify_jwt(token):
     else:
         raise Exception("Unable to find appropriate key")
 
+
 def lambda_handler(event, _context):
     try:
         print(f"🚀 Starting Upload of Raw CSV to {UPLOAD_PREFIX}")
@@ -76,7 +73,11 @@ def lambda_handler(event, _context):
         # Get the Authorization token
         token = event['headers'].get('Authorization')
         if not token:
-            return {'statusCode': 401, 'body': json.dumps({'error': 'Authorization token missing'})}
+            return {
+                'statusCode': 401,
+                'body': json.dumps({
+                    'error': 'Authorization token missing'
+                })}
 
         # Validate the token
         payload = verify_jwt(token)
