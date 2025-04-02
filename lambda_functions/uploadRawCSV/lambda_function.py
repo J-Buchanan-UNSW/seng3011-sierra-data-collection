@@ -1,7 +1,9 @@
 import json
 import os
+import urllib.error
+import urllib.request
+
 import boto3
-import requests
 import jwt
 from botocore.config import Config
 
@@ -9,17 +11,16 @@ BUCKET_NAME = os.getenv("BUCKET_NAME", "dev-sierra-e-bucket")
 UPLOAD_PREFIX = "rawCSV/"
 COGNITO_POOL_ID = os.getenv("COGNITO_POOL_ID", "")
 COGNITO_DOMAIN = os.getenv("COGNITO_DOMAIN", "")
-JWKS_URL = COGNITO_DOMAIN + "/" + COGNITO_POOL_ID + "/.well-known/jwks.json"
+JWKS_URL = f"{COGNITO_DOMAIN}/{COGNITO_POOL_ID}/.well-known/jwks.json"
 
 
-# Fetch Cognito JWKS keys
+# Fetch Cognito JWKS keys without requests
 def get_jwks():
     try:
-        response = requests.get(JWKS_URL)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"Error fetching JWKS: {str(e)}")
+        with urllib.request.urlopen(JWKS_URL) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except urllib.error.URLError as e:
+        print(f"❌ Error fetching JWKS: {e}")
         return None
 
 
@@ -30,20 +31,11 @@ def verify_jwt(token):
         raise Exception("Could not fetch JWKS")
 
     unverified_header = jwt.get_unverified_header(token)
-    if unverified_header is None or 'kid' not in unverified_header:
-        raise Exception('Invalid token header')
+    if not unverified_header or "kid" not in unverified_header:
+        raise Exception("Invalid token header")
 
-    rsa_key = {}
-    for key in jwks['keys']:
-        if key['kid'] == unverified_header['kid']:
-            rsa_key = {
-                'kty': key['kty'],
-                'kid': key['kid'],
-                'use': key['use'],
-                'n': key['n'],
-                'e': key['e']
-            }
-            break
+    rsa_key = next((key for key in jwks["keys"]
+                    if key["kid"] == unverified_header["kid"]), None)
 
     if rsa_key:
         try:
@@ -52,7 +44,7 @@ def verify_jwt(token):
                 rsa_key,
                 algorithms=["RS256"],
                 audience=os.getenv("API_AUDIENCE"),
-                issuer=COGNITO_DOMAIN + "/" + COGNITO_POOL_ID
+                issuer=f"{COGNITO_DOMAIN}/{COGNITO_POOL_ID}"
             )
             return payload
         except jwt.ExpiredSignatureError:
@@ -61,8 +53,8 @@ def verify_jwt(token):
             raise Exception("Invalid claims")
         except Exception as e:
             raise Exception(f"Token validation error: {str(e)}")
-    else:
-        raise Exception("Unable to find appropriate key")
+
+    raise Exception("Unable to find appropriate key")
 
 
 def lambda_handler(event, _context):
@@ -71,17 +63,16 @@ def lambda_handler(event, _context):
         print("📩 Event received:", json.dumps(event))
 
         # Get the Authorization token
-        token = event['headers'].get('Authorization')
+        token = event["headers"].get("Authorization")
         if not token:
             return {
-                'statusCode': 401,
-                'body': json.dumps({
-                    'error': 'Authorization token missing'
-                })}
+                "statusCode": 401,
+                "body": json.dumps({"error": "Authorization token missing"})
+            }
 
         # Validate the token
         payload = verify_jwt(token)
-        print(f"Valid token payload: {payload}")
+        print(f"✅ Valid token payload: {payload}")
 
         s3 = boto3.client(
             "s3",
@@ -117,8 +108,7 @@ def lambda_handler(event, _context):
             Params={
                 "Bucket": BUCKET_NAME,
                 "Key": s3_key,
-                "ContentType": "text/csv",
-            },
+                "ContentType": "text/csv"},
             ExpiresIn=3600,
         )
 
