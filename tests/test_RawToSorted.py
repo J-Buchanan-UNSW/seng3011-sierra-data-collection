@@ -150,3 +150,18 @@ def test_MissingMetricCSV():
     assert response['statusCode'] == 400
     body = json.loads(response["body"]).get("error")
     assert body == "Missing 'metric_name' column in CSV"
+
+
+@mock_aws
+def test_EmptyBucket():
+    # generates a mock s3
+    s3_client = boto3.client('s3')
+    testBucketName = 'testBucket'
+    s3_client.create_bucket(Bucket=testBucketName)
+
+    # test if it goes through with errors
+    response = lambda_handler(event=Generate_Mock_event(), _context=None)
+    assert response['statusCode'] == 500
+    # body = json.loads(response["body"]).get("error")
+    # assert body == "Missing 'metric_name' column in CSV"
+

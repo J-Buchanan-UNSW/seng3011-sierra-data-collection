@@ -142,3 +142,36 @@ def test_EmptyCSV():
     # test if it goes through with errors
     response = lambda_handler(event=Generate_Mock_event(), _context=None)
     assert response['statusCode'] == 500
+
+@mock_aws
+def test_EmptyBucket():
+    # generates a mock s3
+    s3_client = boto3.client('s3')
+    testBucketName = 'testBucket'
+    s3_client.create_bucket(Bucket=testBucketName)
+
+    # test if it goes through with errors
+    response = lambda_handler(event=Generate_Mock_event(), _context=None)
+    assert response['statusCode'] == 500
+
+
+#test if file is missing columns
+@mock_aws
+def test_FileMissingColumns():
+    # generates a mock s3
+    s3_client = boto3.client('s3')
+    testBucketName = 'testBucket'
+    s3_client.create_bucket(Bucket=testBucketName)
+    Processed_CSV_FILE_PATH = "processedCSV/environmental_risk.csv"
+    TEST_FILE_PATH = Path(__file__).parent/"TestFilesSorted"/"missingColumns.csv"
+
+    # inserts the sorted environmental_risk test file into the mock S3
+
+    s3_client.put_object(
+    Bucket='testBucket',
+    Key = Processed_CSV_FILE_PATH,
+    Body = open(TEST_FILE_PATH, "rb")
+    )
+    # test if the file is missing columns
+    response = lambda_handler(event=Generate_Mock_event(), _context=None)
+    assert response['statusCode'] == 400
