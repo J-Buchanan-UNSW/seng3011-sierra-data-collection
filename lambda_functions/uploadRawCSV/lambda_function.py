@@ -8,11 +8,13 @@ import os
 import boto3
 from botocore.config import Config
 
-BUCKET_NAME = os.getenv("BUCKET_NAME", "dev-sierra-e-bucket")
-UPLOAD_PREFIX = "rawCSV/"
+
 
 
 def lambda_handler(event, _context):
+
+    BUCKET_NAME = os.getenv("BUCKET_NAME", "dev-sierra-e-bucket")
+    UPLOAD_PREFIX = "rawCSV/"
     """
     Handles API Gateway requests to generate a presigned URL for uploading CSV.
 

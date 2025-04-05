@@ -1,5 +1,6 @@
 import base64
 import json
+from urllib.parse import urlparse
 import pytest
 import os
 from moto import mock_aws
@@ -11,127 +12,24 @@ from lambda_functions.uploadRawCSV.lambda_function import lambda_handler
 # @pytest.fixture
 def Generate_Mock_event():
     s3_event = {
-  "body": "eyJ0ZXN0IjoiYm9keSJ9",
-  "resource": "/{proxy+}",
-  "path": "/path/to/resource",
-  "httpMethod": "GET",
-  "isBase64Encoded": true,
-  "queryStringParameters": {
-    "foo": "bar"
-  },
-  "multiValueQueryStringParameters": {
-    "foo": [
-      "bar"
-    ]
-  },
-  "pathParameters": {
-    "proxy": "/path/to/resource"
-  },
-  "stageVariables": {
-    "baz": "qux"
-  },
-  "headers": {
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    "Accept-Encoding": "gzip, deflate, sdch",
-    "Accept-Language": "en-US,en;q=0.8",
-    "Cache-Control": "max-age=0",
-    "CloudFront-Forwarded-Proto": "https",
-    "CloudFront-Is-Desktop-Viewer": "true",
-    "CloudFront-Is-Mobile-Viewer": "false",
-    "CloudFront-Is-SmartTV-Viewer": "false",
-    "CloudFront-Is-Tablet-Viewer": "false",
-    "CloudFront-Viewer-Country": "US",
-    "Host": "1234567890.execute-api.us-east-1.amazonaws.com",
-    "Upgrade-Insecure-Requests": "1",
-    "User-Agent": "Custom User Agent String",
-    "Via": "1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)",
-    "X-Amz-Cf-Id": "cDehVQoZnx43VYQb9j2-nvCh-9z396Uhbp027Y2JvkCPNLmGJHqlaA==",
-    "X-Forwarded-For": "127.0.0.1, 127.0.0.2",
-    "X-Forwarded-Port": "443",
-    "X-Forwarded-Proto": "https"
-  },
-  "multiValueHeaders": {
-    "Accept": [
-      "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
-    ],
-    "Accept-Encoding": [
-      "gzip, deflate, sdch"
-    ],
-    "Accept-Language": [
-      "en-US,en;q=0.8"
-    ],
-    "Cache-Control": [
-      "max-age=0"
-    ],
-    "CloudFront-Forwarded-Proto": [
-      "https"
-    ],
-    "CloudFront-Is-Desktop-Viewer": [
-      "true"
-    ],
-    "CloudFront-Is-Mobile-Viewer": [
-      "false"
-    ],
-    "CloudFront-Is-SmartTV-Viewer": [
-      "false"
-    ],
-    "CloudFront-Is-Tablet-Viewer": [
-      "false"
-    ],
-    "CloudFront-Viewer-Country": [
-      "US"
-    ],
-    "Host": [
-      "0123456789.execute-api.us-east-1.amazonaws.com"
-    ],
-    "Upgrade-Insecure-Requests": [
-      "1"
-    ],
-    "User-Agent": [
-      "Custom User Agent String"
-    ],
-    "Via": [
-      "1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)"
-    ],
-    "X-Amz-Cf-Id": [
-      "cDehVQoZnx43VYQb9j2-nvCh-9z396Uhbp027Y2JvkCPNLmGJHqlaA=="
-    ],
-    "X-Forwarded-For": [
-      "127.0.0.1, 127.0.0.2"
-    ],
-    "X-Forwarded-Port": [
-      "443"
-    ],
-    "X-Forwarded-Proto": [
-      "https"
-    ]
-  },
-  "requestContext": {
-    "accountId": "123456789012",
-    "resourceId": "123456",
-    "stage": "prod",
-    "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
-    "requestTime": "09/Apr/2015:12:34:56 +0000",
-    "requestTimeEpoch": 1428582896000,
-    "identity": {
-      "cognitoIdentityPoolId": null,
-      "accountId": null,
-      "cognitoIdentityId": null,
-      "caller": null,
-      "accessKey": null,
-      "sourceIp": "127.0.0.1",
-      "cognitoAuthenticationType": null,
-      "cognitoAuthenticationProvider": null,
-      "userArn": null,
-      "userAgent": "Custom User Agent String",
-      "user": null
-    },
-    "path": "/prod/path/to/resource",
-    "resourcePath": "/{proxy+}",
-    "httpMethod": "POST",
-    "apiId": "1234567890",
-    "protocol": "HTTP/1.1"
-  }
+    "queryStringParameters": {
+        "file": "test.csv"
+    }
+}
+    return s3_event
+
+def NoFileParamEvent():
+    s3_event = {
+    "queryStringParameters": {
+        "file": ""
+    }
+}
+    return s3_event
+
+def NoQueryParamEvent():
+    s3_event = {
+    "queryStringParameters": {
+    }
 }
     return s3_event
 
@@ -141,6 +39,44 @@ def test_Generate_Mock_s3():
     testBucketName = 'dev-sierra-e-bucket'
     s3_client.create_bucket(Bucket=testBucketName)
 
-    response = lambda_handler(event=Generate_Mock_event, context={})
+    response = lambda_handler(event=Generate_Mock_event(), _context=None)
     assert response['statusCode'] == 200
+    # check presigned url is generated
+    presigned_URL = json.loads(response["body"]).get("URL")
+    assert presigned_URL != None
 
+@mock_aws
+def test_NoQueryParam():
+    s3_client = boto3.client('s3')
+    testBucketName = 'dev-sierra-e-bucket'
+    s3_client.create_bucket(Bucket=testBucketName)
+
+    response = lambda_handler(event=NoQueryParamEvent(), _context=None)
+    # checks if the right error was passed
+    assert response['statusCode'] == 400
+    body = json.loads(response["body"]).get("error")
+    assert body == "No query parameters found"
+
+@mock_aws
+def test_NoFileParam():
+    s3_client = boto3.client('s3')
+    testBucketName = 'dev-sierra-e-bucket'
+    s3_client.create_bucket(Bucket=testBucketName)
+
+    response = lambda_handler(event=NoFileParamEvent(), _context=None)
+    # checks if the right error was passed
+    assert response['statusCode'] == 400
+    body = json.loads(response["body"]).get("error")
+    assert body == "Missing 'file' parameter"
+
+@mock_aws
+def test_NoEvent():
+    s3_client = boto3.client('s3')
+    testBucketName = 'dev-sierra-e-bucket'
+    s3_client.create_bucket(Bucket=testBucketName)
+
+    # checks if the right error was passed
+    response = lambda_handler(event=None, _context=None)
+    assert response['statusCode'] == 500
+    body = json.loads(response["body"]).get("error")
+    assert body == "Internal Server Error"

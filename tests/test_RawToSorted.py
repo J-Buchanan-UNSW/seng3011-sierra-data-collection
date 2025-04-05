@@ -69,7 +69,7 @@ def test_CorrectFileDelim1():
 
     TEST_FILE_PATH = Path(__file__).parent/"TestFilesRaw"/"testRaw.csv"
 
-    # inserts the sorted environmental_risk test file into the mock S3
+    # inserts the raw test file into the mock S3
 
     s3_client.put_object(
     Bucket='testBucket',
@@ -79,6 +79,8 @@ def test_CorrectFileDelim1():
     # test if it goes through with no errors
     response = lambda_handler(event=Generate_Mock_event(), _context=None)
     assert response['statusCode'] == 200
+    assert 'Content-Type' in response['headers']
+    assert response['headers']['Content-Type'] == 'application/json'
 
 #test expected file with correct suffix, using sorted delimiter ,
 @mock_aws
@@ -101,6 +103,8 @@ def test_CorrectFileDelim2():
     # test if it goes through with no errors
     response = lambda_handler(event=Generate_Mock_event(), _context=None)
     assert response['statusCode'] == 200
+    assert 'Content-Type' in response['headers']
+    assert response['headers']['Content-Type'] == 'application/json'
 
     #test expected file with correct suffix, using sorted delimiter ,
 @mock_aws
@@ -124,45 +128,25 @@ def test_EmptyCSV():
     response = lambda_handler(event=Generate_Mock_event(), _context=None)
     assert response['statusCode'] == 500
 
-# #test incorrect file with wrong suffix
-# @mock_aws
-# def test_IncorrectFileSuffix():
-#     # generates a mock s3
-#     s3_client = boto3.client('s3')
-#     testBucketName = 'testBucket'
-#     s3_client.create_bucket(Bucket=testBucketName)
-#     JSON_FILE_PATH = "processedCSV/environmental_risk.json"
-#     TEST_FILE_PATH = Path(__file__).parent/"TestFiles"/"environmental_risk.json"
+@mock_aws
+def test_MissingMetricCSV():
+    # generates a mock s3
+    s3_client = boto3.client('s3')
+    testBucketName = 'testBucket'
+    s3_client.create_bucket(Bucket=testBucketName)
+    RAW_CSV_FILE_PATH = "rawCSV/"
 
-#     # inserts the sorted environmental_risk test file into the mock S3
+    TEST_FILE_PATH = Path(__file__).parent/"TestFilesRaw"/"MissMetricNam.csv"
 
-#     s3_client.put_object(
-#     Bucket='testBucket',
-#     Key = JSON_FILE_PATH,
-#     Body = open(TEST_FILE_PATH, "rb")
-#     )
-#     # test if it goes through with errors
-#     response = lambda_handler(event=Generate_Mock_event(), _context=None)
-#     assert response['statusCode'] == 500
+    # inserts the sorted environmental_risk test file into the mock S3
 
-# #test file is named wrong
-
-# @mock_aws
-# def test_FileWrongFileName():
-#     # generates a mock s3
-#     s3_client = boto3.client('s3')
-#     testBucketName = 'testBucket'
-#     s3_client.create_bucket(Bucket=testBucketName)
-#     JSON_FILE_PATH = "processedCSV/incorrectlynamed_risk.csv"
-#     TEST_FILE_PATH = Path(__file__).parent/"TestFiles"/"incorrectlynamed_risk.csv"
-
-#     # inserts the sorted environmental_risk test file into the mock S3
-
-#     s3_client.put_object(
-#     Bucket='testBucket',
-#     Key = JSON_FILE_PATH,
-#     Body = open(TEST_FILE_PATH, "rb")
-#     )
-#     # test if it goes through errors
-#     response = lambda_handler(event=Generate_Mock_event(), _context=None)
-#     assert response['statusCode'] == 500
+    s3_client.put_object(
+    Bucket='testBucket',
+    Key = RAW_CSV_FILE_PATH,
+    Body = open(TEST_FILE_PATH, "rb")
+    )
+    # test if it goes through with errors
+    response = lambda_handler(event=Generate_Mock_event(), _context=None)
+    assert response['statusCode'] == 400
+    body = json.loads(response["body"]).get("error")
+    assert body == "Missing 'metric_name' column in CSV"
