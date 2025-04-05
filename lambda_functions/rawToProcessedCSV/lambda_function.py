@@ -9,20 +9,19 @@ import json
 import boto3
 import pandas as pd
 
-# Constants
-UPLOAD_PREFIX = "processedCSV/"
-UPLOAD_FILENAME = "environmental_risk"
-TZS = "GMT+11"
-
-# Current timestamp
-now = datetime.now()
-date_time = now.strftime("%Y-%m-%d %H:%M:%S.%f")
-
-# AWS S3 Client
-s3_client = boto3.client("s3")
-
-
 def lambda_handler(event, _context):
+
+    # Constants
+    UPLOAD_PREFIX = "processedCSV/"
+    UPLOAD_FILENAME = "environmental_risk"
+    TZS = "GMT+11"
+
+    # Current timestamp
+    now = datetime.now()
+    date_time = now.strftime("%Y-%m-%d %H:%M:%S.%f")
+
+    # AWS S3 Client
+    s3_client = boto3.client("s3")
     """
     AWS Lambda handler function that processes a CSV file from S3, filters
     specific metrics, and stores the processed CSV back in S3.
