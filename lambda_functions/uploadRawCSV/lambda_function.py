@@ -8,9 +8,6 @@ import os
 import boto3
 from botocore.config import Config
 
-
-
-
 def lambda_handler(event, _context):
 
     BUCKET_NAME = os.getenv("BUCKET_NAME", "dev-sierra-e-bucket")

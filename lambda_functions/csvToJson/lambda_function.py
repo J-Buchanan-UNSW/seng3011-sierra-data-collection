@@ -19,9 +19,6 @@ from datetime import datetime
 from io import TextIOWrapper
 import boto3
 
-
-
-
 def lambda_handler(event, _context):
     now = datetime.now()
     date_time = now.strftime("%Y-%m-%d %H:%M:%S.%f")
