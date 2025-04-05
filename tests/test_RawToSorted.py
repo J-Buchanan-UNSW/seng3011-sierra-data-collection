@@ -1,11 +1,3 @@
-# import unittest
-# from lambda_function import lambda_handler
-
-# class TestCSVRetrieval(unittest.TestCase):
-
-
-#     def testget(self):
-
 import base64
 import json
 import pytest
@@ -16,7 +8,6 @@ from pathlib import Path
 
 from lambda_functions.rawToProcessedCSV.lambda_function import lambda_handler
 
-# @pytest.fixture
 def Generate_Mock_event():
     s3_event = {
   "Records": [
@@ -58,7 +49,7 @@ def Generate_Mock_event():
 }
 
     return s3_event
-#test expected file with correct suffix, using raw delimiter |
+# test expected file with correct suffix, using raw delimiter |
 @mock_aws
 def test_CorrectFileDelim1():
     # generates a mock s3
@@ -82,7 +73,7 @@ def test_CorrectFileDelim1():
     assert 'Content-Type' in response['headers']
     assert response['headers']['Content-Type'] == 'application/json'
 
-#test expected file with correct suffix, using sorted delimiter ,
+# test expected file with correct suffix, using sorted delimiter ,
 @mock_aws
 def test_CorrectFileDelim2():
     # generates a mock s3
@@ -106,7 +97,7 @@ def test_CorrectFileDelim2():
     assert 'Content-Type' in response['headers']
     assert response['headers']['Content-Type'] == 'application/json'
 
-    #test expected file with correct suffix, using sorted delimiter ,
+# test expected file with correct suffix, using sorted delimiter ,
 @mock_aws
 def test_EmptyCSV():
     # generates a mock s3
@@ -128,6 +119,7 @@ def test_EmptyCSV():
     response = lambda_handler(event=Generate_Mock_event(), _context=None)
     assert response['statusCode'] == 500
 
+# tests if the intake rawCSV is missing metricName as a column
 @mock_aws
 def test_MissingMetricCSV():
     # generates a mock s3
@@ -151,7 +143,7 @@ def test_MissingMetricCSV():
     body = json.loads(response["body"]).get("error")
     assert body == "Missing 'metric_name' column in CSV"
 
-
+# test if the raw csvfile to be turned to sortedcsv doesnt exist (bucket is empty)
 @mock_aws
 def test_EmptyBucket():
     # generates a mock s3
@@ -162,6 +154,3 @@ def test_EmptyBucket():
     # test if it goes through with errors
     response = lambda_handler(event=Generate_Mock_event(), _context=None)
     assert response['statusCode'] == 500
-    # body = json.loads(response["body"]).get("error")
-    # assert body == "Missing 'metric_name' column in CSV"
-

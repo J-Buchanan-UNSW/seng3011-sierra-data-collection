@@ -86,7 +86,7 @@ def lambda_handler(event, _context):
             "disclosure",
             "metric_description", "metric_name", "metric_unit", "metric_value",
             "metric_year", "nb_points_of_observations", "metric_period",
-            "provider_name", "pillar", "headquarter_country"
+            "provider_name", "pillar", "headquarter_country", "category"
         }
 
         actual_columns = set(reader.fieldnames)

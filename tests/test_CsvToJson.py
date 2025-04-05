@@ -1,11 +1,3 @@
-# import unittest
-# from lambda_function import lambda_handler
-
-# class TestCSVRetrieval(unittest.TestCase):
-
-
-#     def testget(self):
-
 import base64
 import json
 import pytest
@@ -16,7 +8,6 @@ from pathlib import Path
 
 from lambda_functions.csvToJson.lambda_function import lambda_handler
 
-# @pytest.fixture
 def Generate_Mock_event():
     s3_event = {
   "Records": [
@@ -100,8 +91,7 @@ def test_IncorrectFileSuffix():
     response = lambda_handler(event=Generate_Mock_event(), _context=None)
     assert response['statusCode'] == 500
 
-#test file is named wrong
-
+#test file is named incorrectly
 @mock_aws
 def test_FileWrongFileName():
     # generates a mock s3
@@ -122,7 +112,7 @@ def test_FileWrongFileName():
     response = lambda_handler(event=Generate_Mock_event(), _context=None)
     assert response['statusCode'] == 500
 
-
+# test if the csvfile has nothing in it.
 @mock_aws
 def test_EmptyCSV():
     # generates a mock s3
@@ -143,6 +133,7 @@ def test_EmptyCSV():
     response = lambda_handler(event=Generate_Mock_event(), _context=None)
     assert response['statusCode'] == 500
 
+#test if the csvfile to be turned to json doesnt exist (bucket is empty)
 @mock_aws
 def test_EmptyBucket():
     # generates a mock s3
@@ -175,3 +166,11 @@ def test_FileMissingColumns():
     # test if the file is missing columns
     response = lambda_handler(event=Generate_Mock_event(), _context=None)
     assert response['statusCode'] == 400
+    body = json.loads(response["body"]).get("error")
+    assert body == "Missing columns"
+    missing = json.loads(response["body"]).get("missing")
+
+    # checks if the missing columns are in the list
+    assert "pillar" in missing
+    assert "category" in missing
+    assert "headquarter_country" in missing

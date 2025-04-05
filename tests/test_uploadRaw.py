@@ -9,7 +9,8 @@ from pathlib import Path
 
 from lambda_functions.uploadRawCSV.lambda_function import lambda_handler
 
-# @pytest.fixture
+# mock event with everything
+
 def Generate_Mock_event():
     s3_event = {
     "queryStringParameters": {
@@ -18,6 +19,8 @@ def Generate_Mock_event():
 }
     return s3_event
 
+# mock event with everything missing fileparam
+
 def NoFileParamEvent():
     s3_event = {
     "queryStringParameters": {
@@ -25,7 +28,7 @@ def NoFileParamEvent():
     }
 }
     return s3_event
-
+# mock event lacking the entire param
 def NoQueryParamEvent():
     s3_event = {
     "queryStringParameters": {
@@ -33,6 +36,7 @@ def NoQueryParamEvent():
 }
     return s3_event
 
+# test expected if event pass through is correct with all params
 @mock_aws
 def test_Generate_Mock_s3():
     s3_client = boto3.client('s3')
@@ -45,6 +49,7 @@ def test_Generate_Mock_s3():
     presigned_URL = json.loads(response["body"]).get("URL")
     assert presigned_URL != None
 
+# test expected if queryparam is missing
 @mock_aws
 def test_NoQueryParam():
     s3_client = boto3.client('s3')
@@ -57,6 +62,7 @@ def test_NoQueryParam():
     body = json.loads(response["body"]).get("error")
     assert body == "No query parameters found"
 
+# test expected if the file paramter isn't passed
 @mock_aws
 def test_NoFileParam():
     s3_client = boto3.client('s3')
@@ -69,6 +75,7 @@ def test_NoFileParam():
     body = json.loads(response["body"]).get("error")
     assert body == "Missing 'file' parameter"
 
+# test expected if event isn't passed
 @mock_aws
 def test_NoEvent():
     s3_client = boto3.client('s3')
