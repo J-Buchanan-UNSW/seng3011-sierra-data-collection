@@ -48,15 +48,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests
+          pip install moto boto3 pandas
+          pip install pytest pytest-cov
 
-      - name: Run tests on the main API
-        env:
-          CLIENT_ID: ${{ secrets.CLIENT_ID }}
-          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-          API_ENDPOINT: "https://2vyhl58mci.execute-api.ap-southeast-2.amazonaws.com/prod/get-upload-url?file=test.csv"
+      - name: Run pytest
         run: |
-          python tests/test_api.py
+          pytest --maxfail=1 --disable-warnings -q
 
   deploy:
     if: ${{ false }}

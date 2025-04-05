@@ -8,10 +8,8 @@ import os
 import boto3
 from botocore.config import Config
 
-def lambda_handler(event, _context):
 
-    BUCKET_NAME = os.getenv("BUCKET_NAME", "dev-sierra-e-bucket")
-    UPLOAD_PREFIX = "rawCSV/"
+def lambda_handler(event, _context):
     """
     Handles API Gateway requests to generate a presigned URL for uploading CSV.
 
@@ -22,8 +20,12 @@ def lambda_handler(event, _context):
     Returns:
         dict: API Gateway-compatible response with a presigned URL.
     """
+
+    bucket_name = os.getenv("bucket_name", "dev-sierra-e-bucket")
+    upload_prefix = "rawCSV/"
+
     try:
-        print(f"🚀 Starting Upload of Raw CSV to {UPLOAD_PREFIX}")
+        print(f"🚀 Starting Upload of Raw CSV to {upload_prefix}")
         print("📩 Event received:", json.dumps(event))
 
         s3 = boto3.client(
@@ -48,18 +50,18 @@ def lambda_handler(event, _context):
                 "body": json.dumps({"error": "Missing 'file' parameter"}),
             }
 
-        s3_key = f"{UPLOAD_PREFIX}{file_name}"
-        print(f"📂 Bucket: {BUCKET_NAME}, File: {s3_key}")
+        s3_key = f"{upload_prefix}{file_name}"
+        print(f"📂 Bucket: {bucket_name}, File: {s3_key}")
 
-        print(f"🔍 Checking if files exist in {UPLOAD_PREFIX}...")
+        print(f"🔍 Checking if files exist in {upload_prefix}...")
         existing_files = s3.list_objects_v2(
-            Bucket=BUCKET_NAME,
-            Prefix=UPLOAD_PREFIX)
+            Bucket=bucket_name,
+            Prefix=upload_prefix)
 
         if "Contents" in existing_files:
             for obj in existing_files["Contents"]:
                 print(f"🗑 Deleting existing file: {obj['Key']}")
-                s3.delete_object(Bucket=BUCKET_NAME, Key=obj["Key"])
+                s3.delete_object(Bucket=bucket_name, Key=obj["Key"])
         else:
             print("✅ No files found in bucket.")
 
@@ -67,7 +69,7 @@ def lambda_handler(event, _context):
         presigned_url = s3.generate_presigned_url(
             "put_object",
             Params={
-                "Bucket": BUCKET_NAME,
+                "Bucket": bucket_name,
                 "Key": s3_key,
                 "ContentType": "text/csv",
             },

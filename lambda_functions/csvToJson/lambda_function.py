@@ -19,15 +19,8 @@ from datetime import datetime
 from io import TextIOWrapper
 import boto3
 
+
 def lambda_handler(event, _context):
-    now = datetime.now()
-    date_time = now.strftime("%Y-%m-%d %H:%M:%S.%f")
-    TZS = 'GMT+11'
-
-    s3_client = boto3.client('s3')
-
-    UPLOAD_PREFIX = "processedJSON/"
-    UPLOAD_FILENAME = "environmental_risk"
     """
     AWS Lambda function to convert a CSV file from S3 to a JSON format
     and store it back in S3.
@@ -39,6 +32,16 @@ def lambda_handler(event, _context):
     Returns:
         dict: HTTP response indicating success or failure.
     """
+
+    now = datetime.now()
+    date_time = now.strftime("%Y-%m-%d %H:%M:%S.%f")
+    TZS = 'GMT+11'
+
+    s3_client = boto3.client('s3')
+
+    UPLOAD_PREFIX = "processedJSON/"
+    UPLOAD_FILENAME = "environmental_risk"
+
     try:
         print("🚀 Starting Conversion of CSV to JSON and storing in",
               UPLOAD_PREFIX)
