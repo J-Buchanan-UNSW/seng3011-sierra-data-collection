@@ -3,25 +3,13 @@ AWS Lambda function to process a CSV file from S3, filter specific metrics,
 and save the processed file back to S3.
 """
 
-from datetime import datetime
 from io import StringIO
 import json
 import boto3
 import pandas as pd
 
+
 def lambda_handler(event, _context):
-
-    # Constants
-    UPLOAD_PREFIX = "processedCSV/"
-    UPLOAD_FILENAME = "environmental_risk"
-    TZS = "GMT+11"
-
-    # Current timestamp
-    now = datetime.now()
-    date_time = now.strftime("%Y-%m-%d %H:%M:%S.%f")
-
-    # AWS S3 Client
-    s3_client = boto3.client("s3")
     """
     AWS Lambda handler function that processes a CSV file from S3, filters
     specific metrics, and stores the processed CSV back in S3.
@@ -33,6 +21,14 @@ def lambda_handler(event, _context):
     Returns:
         dict: A response dictionary containing the statusCode and body message.
     """
+
+    # Constants
+    upload_prefix = "processedCSV/"
+    upload_filename = "environmental_risk"
+
+    # AWS S3 Client
+    s3_client = boto3.client("s3")
+
     try:
         print("🚀 Starting CSV processing...")
         print("📩 Event received:", json.dumps(event))
@@ -43,10 +39,10 @@ def lambda_handler(event, _context):
         print(f"🗂 File detected: s3://{bucket}/{key}")
 
         # Check and delete existing processed files
-        print(f"🔍 Checking for existing files in {UPLOAD_PREFIX}")
+        print(f"🔍 Checking for existing files in {upload_prefix}")
         existing_files = s3_client.list_objects_v2(
             Bucket=bucket,
-            Prefix=UPLOAD_PREFIX)
+            Prefix=upload_prefix)
 
         if "Contents" in existing_files:
             for obj in existing_files["Contents"]:
@@ -118,7 +114,7 @@ def lambda_handler(event, _context):
         csv_output = filtered_data_frame.to_csv(index=False)
         s3_client.put_object(
             Bucket=bucket,
-            Key=f"{UPLOAD_PREFIX}{UPLOAD_FILENAME}.csv",
+            Key=f"{upload_prefix}{upload_filename}.csv",
             Body=csv_output,
         )
 
