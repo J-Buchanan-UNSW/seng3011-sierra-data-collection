@@ -66,11 +66,11 @@ def lambda_handler(event, _context):
                 raise
 
         # Combine and deduplicate data
-        combined_data = pd.concat([exist_data, new_data], ignore_index=True)
-        combined_data.drop_duplicates(inplace=True)
+        combined = pd.concat([exist_data, new_data], ignore_index=True)
+        combined.drop_duplicates(inplace=True)
 
         # Log column names to check if "metric_name" exists
-        print("🧐 Combined CSV Columns:", combined_data.columns.tolist())
+        print("🧐 Combined CSV Columns:", combined.columns.tolist())
 
         # Define filter list
         metric_filter = [
@@ -85,7 +85,7 @@ def lambda_handler(event, _context):
         ]
 
         # Log unique metric names before filtering
-        if "metric_name" not in combined_data.columns:
+        if "metric_name" not in combined.columns:
             print("❌ 'metric_name' column not found! Check CSV format.")
             return {
                 "statusCode": 400,
@@ -94,10 +94,10 @@ def lambda_handler(event, _context):
             }
 
         # Filter data based on metric_name
-        unique_metrics = combined_data["metric_name"].unique().tolist()
+        unique_metrics = combined["metric_name"].unique().tolist()
         print(f"🔍 Unique metric_name values: {unique_metrics}")
 
-        processed_df = combined_data[combined_data["metric_name"].isin(metric_filter)]
+        processed_df = combined[combined["metric_name"].isin(metric_filter)]
         print(f"✅ Filtered DataFrame rows: {len(processed_df)}")
 
         # Save final processed CSV to S3
@@ -109,12 +109,13 @@ def lambda_handler(event, _context):
             Body=out_buffer.getvalue(),
             ContentType="text/csv",
         )
-        print(f"🎉 CSV processing completed and amened to {upload_prefix}/{upload_filename} successfully.")
+        print("🎉 CSV processing completed and amenended successfully.")
 
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
-            "body": json.dumps({"status": "CSV processed and amended successfully"}),
+            "body": json.dumps({"status":
+                "CSV processed and amended successfully"}),
         }
 
     except Exception as e:  # pylint: disable=broad-exception-caught
