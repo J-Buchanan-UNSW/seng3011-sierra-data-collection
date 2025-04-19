@@ -54,11 +54,11 @@ def lambda_handler(event, _context):
         print(f"📂 Bucket: {bucket_name}, File: {s3_key}")
 
         print(f"🔍 Checking if file '{s3_key}' exist in {upload_prefix}...")
-        existing_files = s3.list_objects_v2(
+        exist_files = s3.list_objects_v2(
             Bucket=bucket_name,
             Prefix=upload_prefix)
 
-        if s3_key in [obj["Key"] for obj in existing_files.get("Contents", [])]:
+        if s3_key in [obj["Key"] for obj in exist_files.get("Contents", [])]:
             print(f"🗑 Deleting existing file: {s3_key}")
             s3.delete_object(Bucket=bucket_name, Key=s3_key)
         else:
