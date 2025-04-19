@@ -114,8 +114,9 @@ def lambda_handler(event, _context):
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
-            "body": json.dumps({"status":
-                    "CSV processed and amended successfully"}),
+            "body": json.dumps({
+                "status":"CSV processed and amended successfully"
+            }),
         }
 
     except Exception as e:  # pylint: disable=broad-exception-caught
