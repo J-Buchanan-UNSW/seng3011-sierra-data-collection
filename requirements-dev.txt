@@ -1,0 +1,9 @@
+-r requirements.txt  # Include main dependencies
+
+# Testing tools
+pytest
+pytest-cov
+
+# Linting & Formatting
+flake8
+black
