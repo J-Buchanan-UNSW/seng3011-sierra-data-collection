@@ -41,11 +41,11 @@ def lambda_handler(event, _context):
 
         # Get the data from the newly uploaded raw CSV file
         new_csv = s3_client.get_object(Bucket=bucket, Key=new_key)
-        raw_bytes = new_csv["Body"].read() 
-        raw_str = raw_bytes.decode("utf-8") 
+        raw_bytes = new_csv["Body"].read()
+        raw_str = raw_bytes.decode("utf-8")
 
-        # Get the delimiter 
-        try: 
+        # Get the delimiter
+        try:
             sample = raw_str[:1024]
             dialect = csv.Sniffer().sniff(sample)
             delimiter = dialect.delimiter
@@ -53,10 +53,10 @@ def lambda_handler(event, _context):
             delimiter = ","
 
         new_data = pd.read_csv(StringIO(raw_str), sep=delimiter)
-        
+
         print(f"🔍 Fetching existing files in {upload_prefix}")
-        try: 
-            exist_csv = s3_client.get_object(Bucket=bucket, Key=existing_key) 
+        try:
+            exist_csv = s3_client.get_object(Bucket=bucket, Key=existing_key)
             exist_data = pd.read_csv(exist_csv["Body"])
         except ClientError as e:
             if e.response["Error"]["Code"] == "NoSuchKey":
@@ -68,7 +68,6 @@ def lambda_handler(event, _context):
         # Combine and deduplicate data
         combined_data = pd.concat([exist_data, new_data], ignore_index=True)
         combined_data.drop_duplicates(inplace=True)
-
 
         # Log column names to check if "metric_name" exists
         print("🧐 Combined CSV Columns:", combined_data.columns.tolist())
