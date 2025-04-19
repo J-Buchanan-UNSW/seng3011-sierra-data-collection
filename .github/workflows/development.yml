@@ -3,6 +3,8 @@ name: Deploy to Development
 on:
   push:
     branches: [ dev ]
+  pull:
+    branches: [ dev ]
 
 jobs:
   run-linters:
