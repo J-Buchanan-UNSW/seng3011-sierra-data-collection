@@ -54,7 +54,7 @@ def lambda_handler(event, _context):
             pillar = "social"
         elif "governance" in key.lower():
             pillar = "governance"
-        elif "master.csv" == key:
+        elif "master.csv" in key.lower():
             pillar = "master"
         else:
             pillar = "environmental"
