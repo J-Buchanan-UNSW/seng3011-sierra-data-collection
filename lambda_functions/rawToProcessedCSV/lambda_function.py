@@ -88,15 +88,15 @@ def lambda_handler(event, _context):
 
     lower_key = new_key.lower()
     if "environment" in lower_key:
-        risk_type = "environmental"
+        data_pillar = "environmental"
     elif "social" in lower_key:
-        risk_type = "social"
+        data_pillar = "social"
     elif "governance" in lower_key:
-        risk_type = "governance"
+        data_pillar = "governance"
     else:
-        risk_type = "unknown"
+        data_pillar = "unknown"
 
-    existing_key = f"{upload_prefix}{risk_type}_risk.csv"
+    existing_key = f"{upload_prefix}{data_pillar}.csv"
 
     try:
         print("🚀 Starting CSV processing...")
@@ -136,13 +136,13 @@ def lambda_handler(event, _context):
         print("🧐 Combined CSV Columns:", combined.columns.tolist())
 
         # Define filter list
-        metric_filter = FILTERS.get(risk_type, [])
+        metric_filter = FILTERS.get(data_pillar, [])
         if not metric_filter:
-            print(f"❌ No filters found for risk type: {risk_type}")
+            print(f"❌ No filters found for risk type: {data_pillar}")
             return {
                 "statusCode": 400,
                 "body": json.dumps({
-                    "error": f"No filters found for risk type: {risk_type}"})
+                    "error": f"No filters found for risk type: {data_pillar}"})
             }
 
         # Log unique metric names before filtering
