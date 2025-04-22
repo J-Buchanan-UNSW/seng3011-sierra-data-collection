@@ -51,14 +51,16 @@ def lambda_handler(event, _context):
         key = event['Records'][0]['s3']['object']['key']
 
         if "social" in key.lower():
-            risk_type = "social"
+            pillar = "social"
         elif "governance" in key.lower():
-            risk_type = "governance"
+            pillar = "governance"
+        elif "master.csv" == key:
+            pillar = "master"
         else:
-            risk_type = "environmental"
+            pillar = "environmental"
             print("⚠️ Unknown risk type. Defaulting to environmental.")
 
-        filename = f"{risk_type}.json"
+        filename = f"{pillar}.json"
 
         print(f"🔍 Checking if files exist in {UPLOAD_PREFIX}...")
 
