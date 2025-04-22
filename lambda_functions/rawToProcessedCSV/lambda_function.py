@@ -30,7 +30,7 @@ FILTERS = {
         "WASTE_REDUCTION_TOTAL", "WATER_TECHNOLOGIES"
     ],
     'social': [
-        "BRIBERY_AND_CORRUPTION_PAI_INSUFFICIENT_ACTIONS",     
+        "BRIBERY_AND_CORRUPTION_PAI_INSUFFICIENT_ACTIONS",
         "EMPLOYEEFATALITIES", "EMPLOYEE_HEALTH_SAFETY_POLICY",
         "GENDER_PAY_GAP_PERCENTAGE", "HUMAN_RIGHTS_VIOLATION_PAI",
         "IMPROVEMENT_TOOLS_BUSINESS_ETHICS", "LOSTWORKINGDAYS",
@@ -62,6 +62,7 @@ FILTERS = {
         "COMMMEETINGSATTENDANCEAVG", "GLOBAL_COMPACT"
     ]
 }
+
 
 def lambda_handler(event, _context):
     """
@@ -182,7 +183,6 @@ def lambda_handler(event, _context):
     except Exception as e:  # pylint: disable=broad-exception-caught
         print(f"❌ Error: {str(e)}")
         return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
-
 
 def concat_all_data(bucket, upload_prefix):  
     """
