@@ -55,7 +55,7 @@ def lambda_handler(event, _context):
         elif "social" in key.lower():
             risk_type = "social"
         elif "governance" in key.lower():
-            risk_type = "governance"  
+            risk_type = "governance"
 
         upload_filename = f"{risk_type}_risk.json"
 
