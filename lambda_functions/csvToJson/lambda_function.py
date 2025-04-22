@@ -81,7 +81,7 @@ def lambda_handler(event, _context):
         # Standardized JSON format
         json_header = {
             "data_source": "ClarityAI_Dataset",
-            "dataset_type": "Environmental_Risk",
+            "dataset_type": f"{pillar}",
             "dataset_id": "https://ap-southeast-2.console.aws.amazon.com" +
             "/s3/buckets/sierra-e-bucket",
             "time_object": {"timestamp": date_time, "timezone": TZS},
