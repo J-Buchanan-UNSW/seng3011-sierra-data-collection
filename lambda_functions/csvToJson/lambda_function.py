@@ -58,17 +58,17 @@ def lambda_handler(event, _context):
             risk_type = "environmental"
             print("⚠️ Unknown risk type. Defaulting to environmental.")
 
-        upload_filename = f"{risk_type}.json"
+        filename = f"{risk_type}.json"
 
         print(f"🔍 Checking if files exist in {UPLOAD_PREFIX}...")
 
-        exist_files = s3_client.list_objects_v2(
+        exist_file = s3_client.list_objects_v2(
             Bucket=bucket,
             Prefix=UPLOAD_PREFIX)
-        
-        if  upload_filename in [obj["Key"] for obj in exist_files.get("Contents", [])]:
-            print(f"🗑 Deleting existing file: {upload_filename}")
-            s3_client.delete_object(Bucket=bucket, Key=upload_filename)
+
+        if filename in [obj["Key"] for obj in exist_file.get("Contents", [])]:
+            print(f"🗑 Deleting existing file: {filename}")
+            s3_client.delete_object(Bucket=bucket, Key=filename)
         else:
             print("✅ No existing file found with that name.")
 
@@ -150,10 +150,10 @@ def lambda_handler(event, _context):
         # Upload the converted JSON file
         json_output = json.dumps(json_header, indent=4)
         print("📤 Uploading JSON file to S3: " +
-              f"{UPLOAD_PREFIX}{upload_filename}")
+              f"{UPLOAD_PREFIX}{filename}")
         s3_client.put_object(
             Bucket=bucket,
-            Key=f"{UPLOAD_PREFIX}{upload_filename}",
+            Key=f"{UPLOAD_PREFIX}{filename}",
             Body=json_output
         )
 
