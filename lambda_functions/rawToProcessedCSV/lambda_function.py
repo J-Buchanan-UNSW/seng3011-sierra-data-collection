@@ -10,6 +10,38 @@ import pandas as pd
 import csv
 from botocore.exceptions import ClientError
 
+FILTERS = {
+    'environmental': [
+        "CO2DIRECTSCOPE1", "CO2INDIRECTSCOPE2", "CO2INDIRECTSCOPE3",
+        "CO2_NO_EQUIVALENTS", "NOXEMISSIONS", "SOXEMISSIONS",
+        "VOCEMISSIONS",
+        "WASTETOTAL", "HAZARDOUSWASTE", "PARTICULATE_MATTER_EMISSIONS",
+        "AIRPOLLUTANTS_DIRECT", "AIRPOLLUTANTS_INDIRECT",
+        "NATURAL_RESOURCE_USE_DIRECT", "WATERWITHDRAWALTOTAL",
+        "WATER_USE_PAI_M10", "TOXIC_CHEMICALS_REDUCTION",
+        "VOC_EMISSIONS_REDUCTION", "N_OXS_OX_EMISSIONS_REDUCTION"
+    ],
+    'social': [
+        "BRIBERY_AND_CORRUPTION_PAI_INSUFFICIENT_ACTIONS",                     
+        "EMPLOYEEFATALITIES", "EMPLOYEE_HEALTH_SAFETY_POLICY", 
+        "GENDER_PAY_GAP_PERCENTAGE",
+        "HUMAN_RIGHTS_VIOLATION_PAI"
+        "IMPROVEMENT_TOOLS_BUSINESS_ETHICS", "LOSTWORKINGDAYS", 
+        "POLICY_BOARD_DIVERSITY", "POLICY_BRIBERYAND_CORRUPTION",
+        "POLICY_BUSINESS_ETHICS", "POLICY_CHILD_LABOR", "POLICY_DATA_PRIVACY", 
+        "POLICY_FORCED_LABOR", "POLICY_HUMAN_RIGHTS", "SUPPLY_CHAINHS_POLICY",
+        "TIRTOTAL", "TURNOVEREMPLOYEES"
+    ],
+    'governance': [
+        "ANALYTIC_ANTI_TAKEOVER_DEVICES", "ANALYTICNONAUDITAUDITFEESRATIO",
+        "ANNUAL_MEDIAN_COMPENSATION", "AUDITCOMMNONEXECMEMBERS",
+        "CALL_MEETINGS_LIMITED_RIGHTS", "CEO_ANNUAL_COMPENSATION",
+        "CEO_PAY_RATIO_MEDIAN", "COMPCOMMNONEXECMEMBERS",
+        "CSR_REPORTING_EXTERNAL_AUDIT",
+        "CSR_REPORTINGGRI",
+        "CSR_REPORTINGISO26000",
+    ]
+}
 
 def lambda_handler(event, _context):
     """
@@ -33,7 +65,18 @@ def lambda_handler(event, _context):
     # New data uploaded and exisitng file to be amended
     bucket = event["Records"][0]["s3"]["bucket"]["name"]
     new_key = event["Records"][0]["s3"]["object"]["key"]
-    existing_key = f"{upload_prefix}{upload_filename}.csv"
+
+    lower_key = new_key.lower()
+    if "environment" in lower_key:
+        risk_type = "environmental"
+    elif "social" in lower_key:
+        risk_type = "social"
+    elif "governance" in lower_key:
+        risk_type = "governance"
+    else:
+        risk_type = "unknown"
+
+    existing_key = f"{upload_prefix}{risk_type}_risk.csv"
 
     try:
         print("🚀 Starting CSV processing...")
@@ -73,16 +116,14 @@ def lambda_handler(event, _context):
         print("🧐 Combined CSV Columns:", combined.columns.tolist())
 
         # Define filter list
-        metric_filter = [
-            "CO2DIRECTSCOPE1", "CO2INDIRECTSCOPE2", "CO2INDIRECTSCOPE3",
-            "CO2_NO_EQUIVALENTS", "NOXEMISSIONS", "SOXEMISSIONS",
-            "VOCEMISSIONS",
-            "WASTETOTAL", "HAZARDOUSWASTE", "PARTICULATE_MATTER_EMISSIONS",
-            "AIRPOLLUTANTS_DIRECT", "AIRPOLLUTANTS_INDIRECT",
-            "NATURAL_RESOURCE_USE_DIRECT", "WATERWITHDRAWALTOTAL",
-            "WATER_USE_PAI_M10", "TOXIC_CHEMICALS_REDUCTION",
-            "VOC_EMISSIONS_REDUCTION", "N_OXS_OX_EMISSIONS_REDUCTION"
-        ]
+        metric_filter = FILTERS.get(risk_type, [])
+        if not metric_filter:
+            print(f"❌ No filters found for risk type: {risk_type}")
+            return {
+                "statusCode": 400,
+                "body": json.dumps({
+                    "error": f"No filters found for risk type: {risk_type}"})
+            }
 
         # Log unique metric names before filtering
         if "metric_name" not in combined.columns:
