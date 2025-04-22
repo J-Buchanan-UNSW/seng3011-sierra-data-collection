@@ -19,7 +19,15 @@ FILTERS = {
         "AIRPOLLUTANTS_DIRECT", "AIRPOLLUTANTS_INDIRECT",
         "NATURAL_RESOURCE_USE_DIRECT", "WATERWITHDRAWALTOTAL",
         "WATER_USE_PAI_M10", "TOXIC_CHEMICALS_REDUCTION",
-        "VOC_EMISSIONS_REDUCTION", "N_OXS_OX_EMISSIONS_REDUCTION"
+        "VOC_EMISSIONS_REDUCTION", "N_OXS_OX_EMISSIONS_REDUCTION", 
+        "ECO_DESIGN_PRODUCTS", "ENERGYUSETOTAL", "ENV_INVESTMENTS", 
+        "POLICY_EMISSIONS", "POLICY_SUSTAINABLE_PACKAGING", 
+        "POLICY_WATER_EFFICIENCY", "RENEWENERGYCONSUMED", 
+        "RENEWENERGYPRODUCED", "RENEWENERGYPURCHASED", 
+        "SUSTAINABLE_BUILDING_PRODUCTS", "TAKEBACK_RECYCLING_INITIATIVES",
+        "TARGETS_EMISSIONS", "TARGETS_WATER_EFFICIENCY",
+        "TRANALYTICRENEWENERGYUSE", "WASTE_RECYCLED", 
+        "WASTE_REDUCTION_TOTAL", "WATER_TECHNOLOGIES"
     ],
     'social': [
         "BRIBERY_AND_CORRUPTION_PAI_INSUFFICIENT_ACTIONS",                     
@@ -30,7 +38,15 @@ FILTERS = {
         "POLICY_BOARD_DIVERSITY", "POLICY_BRIBERYAND_CORRUPTION",
         "POLICY_BUSINESS_ETHICS", "POLICY_CHILD_LABOR", "POLICY_DATA_PRIVACY", 
         "POLICY_FORCED_LABOR", "POLICY_HUMAN_RIGHTS", "SUPPLY_CHAINHS_POLICY",
-        "TIRTOTAL", "TURNOVEREMPLOYEES"
+        "TIRTOTAL", "TURNOVEREMPLOYEES", "ANALYTICCSR_COMP_INCENTIVES", 
+        "ANALYTICEMPLOYMENTCREATION", "ANALYTICTOTALDONATIONS", 
+        "ANIMAL_TESTING_REDUCTION", "AVGTRAININGHOURS", 
+        "CONFORMANCE_OECD_MNE", "CONFORMANCE_UN_GUID", "DAY_CARE_SERVICES",
+        "GRIEVANCE_REPORTING_PROCESS", "HUMAN_RIGHTS_CONTRACTOR", 
+        "HUMAN_RIGHTS_POLICY_DUEDILIGENCE", "ISO14000", "LABELED_WOOD",
+        "POLICY_FREEDOMOF_ASSOCIATION", "TARGETS_DIVERSITY_OPPORTUNITY", 
+        "TRADEUNIONREP", "WHISTLEBLOWER_PROTECTION", "WOMENEMPLOYEES", 
+        "WOMENMANAGERS"
     ],
     'governance': [
         "ANALYTIC_ANTI_TAKEOVER_DEVICES", "ANALYTICNONAUDITAUDITFEESRATIO",
@@ -38,7 +54,13 @@ FILTERS = {
         "CALL_MEETINGS_LIMITED_RIGHTS", "CEO_ANNUAL_COMPENSATION",
         "CEO_PAY_RATIO_MEDIAN", "COMPCOMMNONEXECMEMBERS",
         "CSR_REPORTING_EXTERNAL_AUDIT", "CSR_REPORTINGGRI",
-        "CSR_REPORTINGISO26000",
+        "CSR_REPORTINGISO26000", "ANALYTICAUDITCOMMIND", 
+        "ANALYTICBOARDFEMALE", "ANALYTICCEO_CHAIRMAN_SEPARATION",
+        "ANALYTICCOMPCOMMIND", "ANALYTICINDEPBOARD", 
+        "ANALYTICNOMINATIONCOMMIND", "ANALYTICNONEXECBOARD", "ANALYTICQMS",
+        "ANALYTICWASTERECYCLINGRATIO", "ANALYTIC_AUDIT_COMM_EXPERTISE", 
+        "ANALYTIC_VOTING_RIGHTS", "BOARDMEETINGATTENDANCEAVG", 
+        "COMMMEETINGSATTENDANCEAVG", "GLOBAL_COMPACT"
     ]
 }
 
@@ -57,7 +79,6 @@ def lambda_handler(event, _context):
 
     # Constants
     upload_prefix = "processedCSV/"
-    upload_filename = "environmental_risk"
 
     # AWS S3 Client
     s3_client = boto3.client("s3")
@@ -162,3 +183,43 @@ def lambda_handler(event, _context):
     except Exception as e:  # pylint: disable=broad-exception-caught
         print(f"❌ Error: {str(e)}")
         return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
+
+
+def concat_all_data(bucket, upload_prefix):  
+    """
+    Concatenate all data from the processed CSV files in S3 into a single
+    DataFrame and uploads it as a master CSV file.
+
+    Parameters:
+        bucket (str): The name of the S3 bucket.
+        upload_prefix (str): The prefix for the uploaded files.
+    """
+    s3_client = boto3.client("s3")
+
+    paginator = s3_client.get_paginator("list_objects_v2")
+    pages = paginator.paginate(Bucket=bucket, Prefix=upload_prefix)
+
+    print("🔍 Concatonating all CSV files ...")
+
+    all_data = []
+    for page in pages:
+        for obj in page.get("Contents", []):
+            key = obj["Key"]
+            if key.endswith(".csv") and not key.endswith("master.csv"):
+                response = s3_client.get_object(Bucket=bucket, Key=key)
+                data = pd.read_csv(response["Body"])
+                all_data.append(data)
+
+    if all_data:
+        combined_df = pd.concat(all_data, ignore_index=True)
+
+        out_buffer = StringIO()
+        combined_df.to_csv(out_buffer, index=False)
+
+        # Write all data to master csv file
+        s3_client.put_object(
+            Bucket=bucket,
+            Key=f"{upload_prefix}master.csv",
+            Body=out_buffer.getvalue()
+        )
+        print("🎉 All data concatenated and saved to master.csv")
