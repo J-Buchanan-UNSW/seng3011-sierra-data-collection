@@ -193,7 +193,7 @@ def lambda_handler(event, _context):
         return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
 
 
-def concat_all_data(bucket, upload_prefix):  
+def concat_all_data(bucket, upload_prefix):
     """
     Concatenate all data from the processed CSV files in S3 into a single
     DataFrame and uploads it as a master CSV file.
@@ -236,6 +236,6 @@ def concat_all_data(bucket, upload_prefix):
     except ClientError as e:
         print(f"❌ AWS Error: {e}")
         return "Client Error in concatenating all data"
-    except Exception as e: # pylint: disable=broad-exception-caught
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print(f"❌ Error: {e}")
         return "Unexpected Error in concatenating all data"
