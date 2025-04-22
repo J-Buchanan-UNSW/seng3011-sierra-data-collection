@@ -172,6 +172,14 @@ def lambda_handler(event, _context):
         )
         print("🎉 CSV processing completed and amenended successfully.")
 
+        if concat_all_data(bucket, upload_prefix) is not None:
+            print("❌ Error in concatenating all data.")
+            return {
+                "statusCode": 500,
+                "body": json.dumps({
+                    "error": "Error in concatenating all data"})
+            }
+
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
@@ -183,6 +191,7 @@ def lambda_handler(event, _context):
     except Exception as e:  # pylint: disable=broad-exception-caught
         print(f"❌ Error: {str(e)}")
         return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
+
 
 def concat_all_data(bucket, upload_prefix):  
     """
@@ -200,25 +209,33 @@ def concat_all_data(bucket, upload_prefix):
 
     print("🔍 Concatonating all CSV files ...")
 
-    all_data = []
-    for page in pages:
-        for obj in page.get("Contents", []):
-            key = obj["Key"]
-            if key.endswith(".csv") and not key.endswith("master.csv"):
-                response = s3_client.get_object(Bucket=bucket, Key=key)
-                data = pd.read_csv(response["Body"])
-                all_data.append(data)
+    try:
 
-    if all_data:
-        combined_df = pd.concat(all_data, ignore_index=True)
+        all_data = []
+        for page in pages:
+            for obj in page.get("Contents", []):
+                key = obj["Key"]
+                if key.endswith(".csv") and not key.endswith("master.csv"):
+                    response = s3_client.get_object(Bucket=bucket, Key=key)
+                    data = pd.read_csv(response["Body"])
+                    all_data.append(data)
 
-        out_buffer = StringIO()
-        combined_df.to_csv(out_buffer, index=False)
+        if all_data:
+            combined_df = pd.concat(all_data, ignore_index=True)
 
-        # Write all data to master csv file
-        s3_client.put_object(
-            Bucket=bucket,
-            Key=f"{upload_prefix}master.csv",
-            Body=out_buffer.getvalue()
-        )
-        print("🎉 All data concatenated and saved to master.csv")
+            out_buffer = StringIO()
+            combined_df.to_csv(out_buffer, index=False)
+
+            # Write all data to master csv file
+            s3_client.put_object(
+                Bucket=bucket,
+                Key=f"{upload_prefix}master.csv",
+                Body=out_buffer.getvalue()
+            )
+            print("🎉 All data concatenated and saved to master.csv")
+    except ClientError as e:
+        print(f"❌ AWS Error: {e}")
+        return "Client Error in concatenating all data"
+    except Exception as e: # pylint: disable=broad-exception-caught
+        print(f"❌ Error: {e}")
+        return "Unexpected Error in concatenating all data"
