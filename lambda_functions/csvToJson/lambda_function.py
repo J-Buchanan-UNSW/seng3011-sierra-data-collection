@@ -56,7 +56,7 @@ def lambda_handler(event, _context):
             risk_type = "governance"
         else:
             risk_type = "environmental"
-            print("⚠️ Unknown risk type detected. Defaulting to environmental.")
+            print("⚠️ Unknown risk type. Defaulting to environmental.")
 
         upload_filename = f"{risk_type}_risk.json"
 
