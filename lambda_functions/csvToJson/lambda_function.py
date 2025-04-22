@@ -40,7 +40,6 @@ def lambda_handler(event, _context):
     s3_client = boto3.client('s3')
 
     UPLOAD_PREFIX = "processedJSON/"
-    UPLOAD_FILENAME = "environmental_risk"
 
     try:
         print("🚀 Starting Conversion of CSV to JSON and storing in",
@@ -50,6 +49,16 @@ def lambda_handler(event, _context):
         # Retrieves bucket name and file key
         bucket = event['Records'][0]['s3']['bucket']['name']
         key = event['Records'][0]['s3']['object']['key']
+
+        if "social" in key.lower():
+            risk_type = "social"
+        elif "governance" in key.lower():
+            risk_type = "governance"
+        else:
+            risk_type = "environmental"
+            print("⚠️ Unknown risk type. Defaulting to environmental.")
+
+        upload_filename = f"{risk_type}_risk.json"
 
         print(f"🔍 Checking if files exist in {UPLOAD_PREFIX}...")
 
@@ -141,11 +150,12 @@ def lambda_handler(event, _context):
         # Upload the converted JSON file
         json_output = json.dumps(json_header, indent=4)
         print("📤 Uploading JSON file to S3: " +
-              f"{UPLOAD_PREFIX}{UPLOAD_FILENAME}.json")
+              f"{UPLOAD_PREFIX}{upload_filename}")
         s3_client.put_object(
             Bucket=bucket,
-            Key=f"{UPLOAD_PREFIX}{UPLOAD_FILENAME}.json",
-            Body=json_output)
+            Key=f"{UPLOAD_PREFIX}{upload_filename}",
+            Body=json_output
+        )
 
         print("🎉 Conversion of CSV to JSON completed successfully!")
 
