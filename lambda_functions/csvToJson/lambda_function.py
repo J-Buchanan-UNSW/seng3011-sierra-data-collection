@@ -58,19 +58,19 @@ def lambda_handler(event, _context):
             risk_type = "environmental"
             print("⚠️ Unknown risk type. Defaulting to environmental.")
 
-        upload_filename = f"{risk_type}_risk.json"
+        upload_filename = f"{risk_type}.json"
 
         print(f"🔍 Checking if files exist in {UPLOAD_PREFIX}...")
 
-        existing_files = s3_client.list_objects_v2(
+        exist_files = s3_client.list_objects_v2(
             Bucket=bucket,
             Prefix=UPLOAD_PREFIX)
-        if 'Contents' in existing_files:
-            for obj in existing_files['Contents']:
-                print(f"🗑 Deleting existing file: {obj['Key']}")
-                s3_client.delete_object(Bucket=bucket, Key=obj['Key'])
+        
+        if  upload_filename in [obj["Key"] for obj in exist_files.get("Contents", [])]:
+            print(f"🗑 Deleting existing file: {upload_filename}")
+            s3_client.delete_object(Bucket=bucket, Key=upload_filename)
         else:
-            print("✅ No previous files found in bucket.")
+            print("✅ No existing file found with that name.")
 
         print(f"📥 Downloading file from S3: {key}")
         response = s3_client.get_object(Bucket=bucket, Key=key)
