@@ -50,12 +50,13 @@ def lambda_handler(event, _context):
         bucket = event['Records'][0]['s3']['bucket']['name']
         key = event['Records'][0]['s3']['object']['key']
 
-        if "environemntal" in key.lower():
-            risk_type = "environmental"
-        elif "social" in key.lower():
+        if "social" in key.lower():
             risk_type = "social"
         elif "governance" in key.lower():
             risk_type = "governance"
+        else:
+            risk_type = "environmental"
+            print("⚠️ Unknown risk type detected. Defaulting to environmental.")
 
         upload_filename = f"{risk_type}_risk.json"
 
