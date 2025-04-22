@@ -87,14 +87,14 @@ def lambda_handler(event, _context):
     new_key = event["Records"][0]["s3"]["object"]["key"]
 
     lower_key = new_key.lower()
-    if "environment" in lower_key:
-        data_pillar = "environmental"
-    elif "social" in lower_key:
+
+    if "social" in lower_key:
         data_pillar = "social"
     elif "governance" in lower_key:
         data_pillar = "governance"
     else:
-        data_pillar = "unknown"
+        data_pillar = "environmental"
+        print("⚠️ Unknown risk type. Defaulting to environmental.")
 
     existing_key = f"{upload_prefix}{data_pillar}.csv"
 
