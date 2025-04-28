@@ -1,5 +1,5 @@
 """
-AWS Lambda function to generate a presigned URL for uploading CSV files.
+This file has not been deployed, but rather shows our working scraper's code.
 """
 
 import json
